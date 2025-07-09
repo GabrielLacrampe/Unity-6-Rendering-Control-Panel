@@ -1,9 +1,15 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using UnityEditorInternal;
+
 
 public class RenderingControlWindow : EditorWindow
 {
+    bool showFocusedSettings = false;
+
     bool showLighting = true;
     bool showSkybox = true;
 
@@ -15,7 +21,10 @@ public class RenderingControlWindow : EditorWindow
     bool showCamera = true;
 
     bool showProjection = true;
+    bool showRendering = true;
+    bool showStack = true;
     bool showEnvironment = true;
+    bool showOutput = true;
 
 
     [MenuItem("Tools/Rendering Control Panel")]
@@ -36,6 +45,9 @@ public class RenderingControlWindow : EditorWindow
     {
         GUILayout.Space(10);
         GUILayout.Label("Rendering & Lighting Control", EditorStyles.boldLabel);
+
+        showFocusedSettings = EditorGUILayout.Toggle("Focus Settings", showFocusedSettings);
+
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider); // Línea de separación
 
         DrawLightingControls();
@@ -98,17 +110,6 @@ public class RenderingControlWindow : EditorWindow
         EditorGUI.indentLevel--;
     }
 
-    Light FindDirectionalLight()
-    {
-        return GameObject.FindObjectsOfType<Light>()
-            .FirstOrDefault(l => l.type == LightType.Directional);
-    }
-
-    enum CameraProjection
-    {
-        Perspective,
-        Orthographic
-    }
     void DrawCameraControls()
     {
         EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
@@ -124,6 +125,8 @@ public class RenderingControlWindow : EditorWindow
 
         EditorGUI.indentLevel++;
 
+        //TODO falta Render Type
+
         #region Proyección
         EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
         showProjection = EditorGUILayout.Foldout(showProjection, "Projection", true);
@@ -136,8 +139,10 @@ public class RenderingControlWindow : EditorWindow
             projection = (CameraProjection)EditorGUILayout.EnumPopup("Projection", projection);
             mainCamera.orthographic = projection == CameraProjection.Orthographic;
 
+            EditorGUI.indentLevel++;
 
             // Field of View Axis
+            // TODO falta field of view axis horizontal, vertical
             if (!mainCamera.orthographic)
             {
                 // Field of View (solo en perspectiva)
@@ -152,11 +157,14 @@ public class RenderingControlWindow : EditorWindow
 
             // Clipping Planes
             EditorGUILayout.LabelField("Clipping Planes", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
             mainCamera.nearClipPlane = EditorGUILayout.FloatField("Near", mainCamera.nearClipPlane);
             mainCamera.farClipPlane = EditorGUILayout.FloatField("Far", mainCamera.farClipPlane);
+            EditorGUI.indentLevel--;
 
 #if UNITY_2020_1_OR_NEWER
             // Physical Camera (solo en Perspective)
+            // TODO terminar sección de cámara física
             mainCamera.usePhysicalProperties = !mainCamera.orthographic && EditorGUILayout.Toggle("Physical Camera", mainCamera.usePhysicalProperties);
 
             if (mainCamera.usePhysicalProperties && !mainCamera.orthographic)
@@ -167,7 +175,22 @@ public class RenderingControlWindow : EditorWindow
             }
 #endif
             EditorGUI.indentLevel--;
+            EditorGUI.indentLevel--;
         }
+        #endregion
+
+        #region  Rendering
+        EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+        showRendering = EditorGUILayout.Foldout(showRendering, "Rendering", true);
+        EditorGUILayout.EndVertical(); // <-- Termina el marco
+
+        #endregion
+        
+        #region  Stack
+        EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+        showStack = EditorGUILayout.Foldout(showStack, "Stack", true);
+        EditorGUILayout.EndVertical(); // <-- Termina el marco
+
         #endregion
 
         #region  Environment
@@ -177,20 +200,98 @@ public class RenderingControlWindow : EditorWindow
 
         if (showEnvironment)
         {
-            // Clear Flags
-            mainCamera.clearFlags = (CameraClearFlags)EditorGUILayout.EnumPopup("Clear Flags", mainCamera.clearFlags);
+            EditorGUI.indentLevel++;
+
+            // Mapear el clearFlags actual al enum filtrado
+            CleanedClearFlags filteredClearFlags = (CleanedClearFlags)mainCamera.clearFlags;
+
+            filteredClearFlags = (CleanedClearFlags)EditorGUILayout.EnumPopup("Background Type", filteredClearFlags);
+
+            // Aplicar el cambio a la cámara (cast a CameraClearFlags original)
+            mainCamera.clearFlags = (CameraClearFlags)filteredClearFlags;
 
             // Background color
             if (mainCamera.clearFlags == CameraClearFlags.SolidColor)
             {
-                mainCamera.backgroundColor = EditorGUILayout.ColorField("Background Color", mainCamera.backgroundColor);
+                EditorGUI.indentLevel++;
+                mainCamera.backgroundColor = EditorGUILayout.ColorField("Background", mainCamera.backgroundColor);
+
+                EditorGUI.indentLevel--;
             }
+
+            // Obtener datos de cámara extendidos de URP
+            var additionalData = mainCamera.GetComponent<UniversalAdditionalCameraData>();
+            if (additionalData != null)
+            {
+                if (showFocusedSettings) return;
+                EditorGUILayout.LabelField("Volumes");
+
+                EditorGUI.indentLevel++;
+                // Obtener el modo actual
+                VolumeFrameworkUpdateMode currentMode = mainCamera.GetVolumeFrameworkUpdateMode();
+
+                // Mostrar selector
+                currentMode = (VolumeFrameworkUpdateMode)EditorGUILayout.EnumPopup("Update Mode", currentMode);
+
+                // Aplicar el modo seleccionado
+                if (EditorGUI.EndChangeCheck())
+                    mainCamera.SetVolumeFrameworkUpdateMode(currentMode);
+                additionalData.volumeLayerMask = LayerMaskField("Volume Mask", additionalData.volumeLayerMask);
+                additionalData.volumeTrigger = (Transform)EditorGUILayout.ObjectField("Volume Trigger", additionalData.volumeTrigger, typeof(Transform), true);
+
+                EditorGUI.indentLevel--;
+            }
+            EditorGUI.indentLevel--;
         }
         #endregion
 
+        #region  Output
+        EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+        showOutput = EditorGUILayout.Foldout(showOutput, "Output", true);
+        EditorGUILayout.EndVertical(); // <-- Termina el marco
+
+        #endregion
 
         EditorGUI.indentLevel--;
     }
 
+    static LayerMask LayerMaskField(string label, LayerMask selected)
+    {
+        var layers = InternalEditorUtility.layers;
+        var layerNumbers = new int[layers.Length];
+        for (int i = 0; i < layers.Length; i++)
+            layerNumbers[i] = LayerMask.NameToLayer(layers[i]);
 
+        int maskWithoutEmpty = 0;
+        for (int i = 0; i < layerNumbers.Length; i++)
+            if (((1 << layerNumbers[i]) & selected.value) > 0)
+                maskWithoutEmpty |= (1 << i);
+
+        maskWithoutEmpty = EditorGUILayout.MaskField(label, maskWithoutEmpty, layers);
+
+        int mask = 0;
+        for (int i = 0; i < layerNumbers.Length; i++)
+            if ((maskWithoutEmpty & (1 << i)) > 0)
+                mask |= (1 << layerNumbers[i]);
+
+        selected.value = mask;
+        return selected;
+    }
+
+    Light FindDirectionalLight()
+    {
+        return GameObject.FindObjectsOfType<Light>()
+            .FirstOrDefault(l => l.type == LightType.Directional);
+    }
+    enum CameraProjection
+    {
+        Perspective,
+        Orthographic
+    }
+    enum CleanedClearFlags
+    {
+        Skybox = CameraClearFlags.Skybox,
+        SolidColor = CameraClearFlags.SolidColor,
+        Uninitialized = CameraClearFlags.Nothing
+    }
 }
