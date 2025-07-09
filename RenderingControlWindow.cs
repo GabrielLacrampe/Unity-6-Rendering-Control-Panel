@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEditorInternal;
+using System;
 
 
 public class RenderingControlWindow : EditorWindow
@@ -20,11 +21,11 @@ public class RenderingControlWindow : EditorWindow
     Camera mainCamera;
     bool showCamera = true;
 
-    bool showProjection = true;
-    bool showRendering = true;
-    bool showStack = true;
-    bool showEnvironment = true;
-    bool showOutput = true;
+    bool showProjection = false;
+    bool showRendering = false;
+    bool showStack = false;
+    bool showEnvironment = false;
+    bool showOutput = false;
 
 
     [MenuItem("Tools/Rendering Control Panel")]
@@ -179,21 +180,212 @@ public class RenderingControlWindow : EditorWindow
         }
         #endregion
 
-        #region  Rendering
-        EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
-        showRendering = EditorGUILayout.Foldout(showRendering, "Rendering", true);
-        EditorGUILayout.EndVertical(); // <-- Termina el marco
+        Rendering();
 
-        #endregion
-        
         #region  Stack
         EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
         showStack = EditorGUILayout.Foldout(showStack, "Stack", true);
         EditorGUILayout.EndVertical(); // <-- Termina el marco
 
+        if (showStack)
+        {
+            EditorGUI.indentLevel++;
+
+            var additionalData = mainCamera.GetComponent<UniversalAdditionalCameraData>();
+            if (additionalData != null && additionalData.renderType == CameraRenderType.Base)
+            {
+                EditorGUILayout.LabelField("Camera Stack", EditorStyles.boldLabel);
+
+                for (int i = 0; i < additionalData.cameraStack.Count; i++)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    additionalData.cameraStack[i] = (Camera)EditorGUILayout.ObjectField($"Overlay {i}", additionalData.cameraStack[i], typeof(Camera), true);
+                    if (GUILayout.Button("-", GUILayout.Width(20)))
+                    {
+                        additionalData.cameraStack.RemoveAt(i);
+                        i--;
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+
+                if (GUILayout.Button("Añadir cámara overlay"))
+                {
+                    additionalData.cameraStack.Add(null);
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Stack solo disponible en cámaras con Render Type: Base", MessageType.Info);
+            }
+
+            EditorGUI.indentLevel--;
+        }
         #endregion
 
-        #region  Environment
+        Environment();
+
+        #region  Output
+        EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+        showOutput = EditorGUILayout.Foldout(showOutput, "Output", true);
+        EditorGUILayout.EndVertical(); // <-- Termina el marco
+
+        if (showOutput)
+        {
+            EditorGUI.indentLevel++;
+
+            mainCamera.targetDisplay = EditorGUILayout.IntSlider("Target Display", mainCamera.targetDisplay, 0, Display.displays.Length - 1);
+            mainCamera.depth = EditorGUILayout.FloatField("Depth", mainCamera.depth);
+
+            var additionalData = mainCamera.GetComponent<UniversalAdditionalCameraData>();
+            if (additionalData != null)
+            {
+                //additionalData.outputCamera = (Camera)EditorGUILayout.ObjectField("Output Camera", additionalData.outputCamera, typeof(Camera), true);
+            }
+
+            EditorGUI.indentLevel--;
+        }
+
+        #endregion
+
+        EditorGUI.indentLevel--;
+    }
+
+    private void Rendering()
+    {
+        EditorGUILayout.BeginVertical("box");
+        showRendering = EditorGUILayout.Foldout(showRendering, "Rendering", true);
+        EditorGUILayout.EndVertical();
+
+        if (showRendering)
+        {
+            EditorGUI.indentLevel++;
+
+            var additionalData = mainCamera.GetComponent<UniversalAdditionalCameraData>();
+            if (additionalData == null)
+            {
+                EditorGUILayout.HelpBox("No se ha encontrado el componente UniversalAdditionalCameraData.", MessageType.Warning);
+                EditorGUI.indentLevel--;
+                return;
+            }
+
+            #region Renderer
+            SerializedObject camDataSO = new SerializedObject(additionalData);
+            SerializedProperty rendererProp = camDataSO.FindProperty("m_RendererIndex");
+
+            var urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+            
+            string[] rendererNames = null;
+            int popupIndex = 0;
+
+            if (urpAsset != null && urpAsset.rendererDataList != null)
+            {
+                var list = urpAsset.rendererDataList;
+                rendererNames = new string[list.Length + 1]; // +1 para el Default
+
+                // Obtenemos el valor de defaultRendererIndex usando SerializedObject
+                int defaultRendererIndex = 0; // fallback
+
+                SerializedObject urpSerialized = new SerializedObject(urpAsset);
+                SerializedProperty defaultRendererProp = urpSerialized.FindProperty("m_DefaultRendererIndex");
+
+                if (defaultRendererProp != null)
+                    defaultRendererIndex = defaultRendererProp.intValue;
+
+                string defaultRendererName = (defaultRendererIndex >= 0 && defaultRendererIndex < urpAsset.rendererDataList.Length
+                && urpAsset.rendererDataList[defaultRendererIndex] != null)
+                ? urpAsset.rendererDataList[defaultRendererIndex].name
+                : "Unknown";
+
+                rendererNames[0] = $"Default Renderer ({defaultRendererName})";
+
+                // Agregamos el resto de renderers con su índice
+                for (int i = 0; i < list.Length; i++)
+                {
+                    string name = list[i] != null ? list[i].name : "Unnamed Renderer";
+                    rendererNames[i + 1] = $"{i}: {name}";
+                }
+
+                // Traducimos rendererProp.intValue a índice del popup
+                popupIndex = rendererProp.intValue == -1 ? 0 : rendererProp.intValue + 1;
+                popupIndex = Mathf.Clamp(popupIndex, 0, rendererNames.Length - 1);
+            }
+
+            if (rendererNames != null && rendererProp != null)
+            {
+                int selected = EditorGUILayout.Popup("Renderer", popupIndex, rendererNames);
+
+                int newValue = selected == 0 ? -1 : selected - 1;
+
+                if (newValue != rendererProp.intValue)
+                {
+                    rendererProp.intValue = newValue;
+                    camDataSO.ApplyModifiedProperties();
+                }
+            }
+            #endregion
+
+            EditorGUI.BeginChangeCheck();
+            bool newPostProcessing = EditorGUILayout.Toggle("Post Processing", additionalData.renderPostProcessing);
+            if (EditorGUI.EndChangeCheck())
+            {
+                additionalData.renderPostProcessing = newPostProcessing;
+            }
+
+            #region Anti-aliasing
+            additionalData.antialiasing = (AntialiasingMode)EditorGUILayout.EnumPopup("Anti-aliasing", additionalData.antialiasing);
+            EditorGUI.indentLevel++;
+
+
+            //TemporalAntiAliasing
+            if (additionalData.antialiasing == AntialiasingMode.TemporalAntiAliasing)
+            {
+                EditorGUI.indentLevel++;
+
+                EditorGUILayout.HelpBox(
+                        "Las opciones de calidad y nitidez no se pueden modificar desde aquí.",
+                        MessageType.Info
+                    );
+
+                EditorGUI.indentLevel--;
+            }
+            //SubpixelMorphologicalAntiAliasing
+            if (additionalData.antialiasing == AntialiasingMode.SubpixelMorphologicalAntiAliasing)
+            {
+                EditorGUI.indentLevel++;
+                additionalData.antialiasingQuality = (AntialiasingQuality)EditorGUILayout.EnumPopup("Quality", additionalData.antialiasingQuality);
+
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUI.indentLevel--;
+            #endregion
+
+
+            #region Extra rendering flags
+            additionalData.stopNaN = EditorGUILayout.Toggle("Stop NaNs", additionalData.stopNaN);
+            additionalData.dithering = EditorGUILayout.Toggle("Dithering", additionalData.dithering);
+
+            // Shadows
+            additionalData.renderShadows = EditorGUILayout.Toggle("Render Shadows", additionalData.renderShadows);
+
+            mainCamera.depth = EditorGUILayout.FloatField("Priority", mainCamera.depth);
+            
+
+            // Opaque / Depth texture
+            additionalData.requiresColorTexture = EnumToBool((TextureRequirement)EditorGUILayout.EnumPopup("Opaque Texture", BoolToEnum(additionalData.requiresColorTexture)));
+            additionalData.requiresDepthTexture = EnumToBool((TextureRequirement)EditorGUILayout.EnumPopup("Depth Texture", BoolToEnum(additionalData.requiresDepthTexture)));
+            
+
+            // Culling
+            mainCamera.cullingMask = LayerMaskField("Culling Mask", mainCamera.cullingMask);
+            mainCamera.useOcclusionCulling = EditorGUILayout.Toggle("Occlusion Culling", mainCamera.useOcclusionCulling);
+            #endregion
+
+            EditorGUI.indentLevel--;
+        }
+    }
+    private void Environment()
+    {
         EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
         showEnvironment = EditorGUILayout.Foldout(showEnvironment, "Environment", true);
         EditorGUILayout.EndVertical(); // <-- Termina el marco
@@ -243,18 +435,7 @@ public class RenderingControlWindow : EditorWindow
             }
             EditorGUI.indentLevel--;
         }
-        #endregion
-
-        #region  Output
-        EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
-        showOutput = EditorGUILayout.Foldout(showOutput, "Output", true);
-        EditorGUILayout.EndVertical(); // <-- Termina el marco
-
-        #endregion
-
-        EditorGUI.indentLevel--;
     }
-
     static LayerMask LayerMaskField(string label, LayerMask selected)
     {
         var layers = InternalEditorUtility.layers;
@@ -294,4 +475,15 @@ public class RenderingControlWindow : EditorWindow
         SolidColor = CameraClearFlags.SolidColor,
         Uninitialized = CameraClearFlags.Nothing
     }
+    public enum TextureRequirement
+    {
+        Off,
+        On
+        // En el futuro podrías añadir "Auto" si tuviera sentido
+    }
+    private TextureRequirement BoolToEnum(bool value) =>
+    value ? TextureRequirement.On : TextureRequirement.Off;
+
+    private bool EnumToBool(TextureRequirement value) =>
+        value == TextureRequirement.On;
 }
