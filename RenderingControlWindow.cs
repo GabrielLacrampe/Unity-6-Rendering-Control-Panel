@@ -36,8 +36,6 @@ public class RenderingControlWindow : EditorWindow
         DrawCameraControls();
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider); // Línea de separación
         DrawLightingControls();
-        EditorGUILayout.LabelField("", GUI.skin.horizontalSlider); // Línea de separación
-        DrawSkyboxControls();
 
         GUILayout.FlexibleSpace();
 
@@ -241,25 +239,6 @@ public class RenderingControlWindow : EditorWindow
     */
     #endregion
 
-    #region Skybox Controls
-
-    bool showSkybox = false;
-    void DrawSkyboxControls()
-    {
-        EditorGUILayout.BeginVertical("box");
-        showSkybox = EditorGUILayout.Foldout(showSkybox, "Skybox y Ambient", true);
-        EditorGUILayout.EndVertical();
-
-        if (showSkybox)
-        {
-
-
-
-            EditorGUI.indentLevel--;
-        }
-    }
-
-    #endregion
 
     #region Camera Controls
     bool showCamera = true;
