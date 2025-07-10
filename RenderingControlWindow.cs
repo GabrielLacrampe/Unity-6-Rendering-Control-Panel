@@ -4,113 +4,270 @@ using System.Linq;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEditorInternal;
-using System;
 
 
 public class RenderingControlWindow : EditorWindow
 {
-    bool showFocusedSettings = false;
-
-    bool showLighting = true;
-    bool showSkybox = true;
-
-
-    Color ambientColor;
+    Color ambientLight;
     Light mainLight;
-
     Camera mainCamera;
-    bool showCamera = true;
 
-    bool showProjection = false;
-    bool showRendering = false;
-    bool showStack = false;
-    bool showEnvironment = false;
-    bool showOutput = false;
-
-
+    #region Setup
     [MenuItem("Tools/Rendering Control Panel")]
-    public static void ShowWindow()
+    static void ShowWindow()
     {
         GetWindow<RenderingControlWindow>("Rendering Control");
     }
 
-    private void OnEnable()
+    void OnEnable()
     {
-        ambientColor = RenderSettings.ambientLight;
-        mainLight = FindDirectionalLight();
-
         mainCamera = Camera.main;
+        ambientLight = RenderSettings.ambientLight;
+        mainLight = FindDirectionalLight();
     }
 
+
+    bool showFocusedSettings = false;
+    Vector2 scrollPosition; // Añade esta variable para el scroll
     void OnGUI()
     {
-        GUILayout.Space(10);
-        GUILayout.Label("Rendering & Lighting Control", EditorStyles.boldLabel);
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition); // INICIO SCROLL
 
-        showFocusedSettings = EditorGUILayout.Toggle("Focus Settings", showFocusedSettings);
-
+        DrawCameraControls();
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider); // Línea de separación
-
         DrawLightingControls();
-        EditorGUILayout.Space(10);
+        EditorGUILayout.LabelField("", GUI.skin.horizontalSlider); // Línea de separación
         DrawSkyboxControls();
 
-        EditorGUILayout.Space(10);
-        DrawCameraControls();
-
         GUILayout.FlexibleSpace();
+
+        showFocusedSettings = EditorGUILayout.Toggle("Focus Settings", showFocusedSettings);
 
         if (GUILayout.Button("Refrescar datos"))
         {
             mainLight = FindDirectionalLight();
-            ambientColor = RenderSettings.ambientLight;
+            ambientLight = RenderSettings.ambientLight;
         }
+
+        EditorGUILayout.EndScrollView(); // FIN SCROLL
     }
+    #endregion
+
+    /* TODO: implementar las siguientes secciones:
+     * 
+     * Parámetros globales de iluminación
+     * Menú Window > Rendering > Lighting (Pestaña Scene y Environment)
+     * 
+     * el modo de luz ambiental (Skybox, Color, Gradient), la intensidad y el color.
+     * Sección Environment Reflections
+     * 
+     * Parámetros globales de sombras
+     * Edit > Project Settings > Quality
+     * seleccionar el nivel de calidad y, para cada nivel, ajustar:
+     *      Shadows (Calidad de sombras)
+     *      Shadow Distance (Distancia de sombra)
+     *      Shadow Resolution (Resolución de sombra)
+     *      
+     * 
+     */
+
+    #region Lighting Controls
+    bool showLighting = false;
+    bool showMainLight = false;
+    bool showOtrasLuces = false;
+    bool showMainMenuEnvironment = false;
+    bool showMenuEnvironment = false;
+    bool showMenuOtherSettings = false;
 
     void DrawLightingControls()
     {
-        showLighting = EditorGUILayout.Foldout(showLighting, "Iluminación Global", true);
-        if (!showLighting) return;
+        EditorGUILayout.BeginVertical("box");
+        showLighting = EditorGUILayout.Foldout(showLighting, "Lighting", true);
+        EditorGUILayout.EndVertical();
 
-        EditorGUI.indentLevel++;
+        if (showLighting)
+        {
+            EditorGUI.indentLevel++;
 
-        // Color de luz ambiental
-        ambientColor = EditorGUILayout.ColorField("Ambient Light", ambientColor);
-        RenderSettings.ambientLight = ambientColor;
+            DrawGlobalParameters();
 
-        // Luz direccional principal
+            DrawMainLight();
+
+            DrawOtherLights();
+
+            EditorGUI.indentLevel--;
+        }
+    }
+
+    void DrawOtherLights()
+    {
+        var allLights = GameObject.FindObjectsOfType<Light>().Where(l => l != mainLight).ToArray();
+        if (allLights.Length > 0)
+        {
+            EditorGUILayout.BeginVertical("box");
+            showOtrasLuces = EditorGUILayout.Foldout(showOtrasLuces, "Otras luces en la escena:", true);
+            EditorGUILayout.EndVertical();
+
+            if (showOtrasLuces)
+            {
+                EditorGUI.indentLevel++;
+                foreach (var light in allLights)
+                {
+                    EditorGUI.indentLevel++;
+                    EditorGUILayout.LabelField(light.name, EditorStyles.miniBoldLabel);
+                    light.type = (LightType)EditorGUILayout.EnumPopup("Tipo", light.type);
+                    light.color = EditorGUILayout.ColorField("Color", light.color);
+                    light.intensity = EditorGUILayout.Slider("Intensidad", light.intensity, 0f, 8f);
+                    light.shadows = (LightShadows)EditorGUILayout.EnumPopup("Sombras", light.shadows);
+                    light.shadowStrength = EditorGUILayout.Slider("Fuerza de Sombra", light.shadowStrength, 0f, 1f);
+
+                    EditorGUI.indentLevel--;
+
+                    EditorGUILayout.Space(5);
+                }
+                EditorGUI.indentLevel--;
+            }
+        }
+    }
+
+    void DrawMainLight()
+    {
+        EditorGUILayout.BeginVertical("box");
+        showMainLight = EditorGUILayout.Foldout(showMainLight, "Main Light:", true);
+        EditorGUILayout.EndVertical();
         if (mainLight != null)
         {
-            mainLight.color = EditorGUILayout.ColorField("Main Light Color", mainLight.color);
-            mainLight.intensity = EditorGUILayout.Slider("Intensidad", mainLight.intensity, 0f, 8f);
-            mainLight.transform.rotation = Quaternion.Euler(
-                EditorGUILayout.Vector3Field("Rotación", mainLight.transform.rotation.eulerAngles)
-            );
+            if (showMainLight)
+            {
+                mainLight.color = EditorGUILayout.ColorField("Color", mainLight.color);
+                mainLight.intensity = EditorGUILayout.Slider("Intensidad", mainLight.intensity, 0f, 8f);
+                mainLight.transform.rotation = Quaternion.Euler(
+                    EditorGUILayout.Vector3Field("Rotación", mainLight.transform.rotation.eulerAngles)
+                );
+                mainLight.shadows = (LightShadows)EditorGUILayout.EnumPopup("Sombras", mainLight.shadows);
+                mainLight.shadowStrength = EditorGUILayout.Slider("Fuerza de Sombra", mainLight.shadowStrength, 0f, 1f);
+            }
         }
         else
         {
             EditorGUILayout.HelpBox("No se ha encontrado una luz direccional en la escena.", MessageType.Warning);
         }
-
-        EditorGUI.indentLevel--;
     }
 
-    void DrawSkyboxControls()
+    void DrawGlobalParameters()
     {
-        showSkybox = EditorGUILayout.Foldout(showSkybox, "Skybox y Ambient", true);
-        if (!showSkybox) return;
+        EditorGUILayout.BeginVertical("box");
+        showMainMenuEnvironment = EditorGUILayout.Foldout(showMainMenuEnvironment, "Environment", true);
+        EditorGUILayout.EndVertical();
 
         EditorGUI.indentLevel++;
+        if (showMainMenuEnvironment)
+        {
+            EditorGUI.indentLevel++;
 
-        // Mostrar y editar el material de Skybox
-        RenderSettings.skybox = (Material)EditorGUILayout.ObjectField("Skybox Material", RenderSettings.skybox, typeof(Material), false);
+            EditorGUILayout.BeginVertical("box");
+            showMenuEnvironment = EditorGUILayout.Foldout(showMenuEnvironment, "Environment", true);
+            EditorGUILayout.EndVertical();
 
-        // Espaciado visual
-        GUILayout.Space(5);
+            if (showMenuEnvironment)
+            {
+                EditorGUI.indentLevel++;
+
+                RenderSettings.skybox = (Material)EditorGUILayout.ObjectField("Skybox Material", RenderSettings.skybox, typeof(Material), false);
+                RenderSettings.sun = (Light)EditorGUILayout.ObjectField("Sun Light", RenderSettings.sun, typeof(Light), true);
+
+
+            }
+
+            EditorGUILayout.BeginVertical("box");
+            showMenuOtherSettings = EditorGUILayout.Foldout(showMenuOtherSettings, "Other Settings", true);
+            EditorGUILayout.EndVertical();
+
+            if (showMenuOtherSettings)
+            {
+                RenderSettings.fog = EditorGUILayout.Toggle("Enable Fog", RenderSettings.fog);
+                if (RenderSettings.fog)
+                {
+                    EditorGUI.indentLevel++;
+
+                    RenderSettings.fogColor = EditorGUILayout.ColorField("Color", RenderSettings.fogColor);
+                    RenderSettings.fogMode = (FogMode)EditorGUILayout.EnumPopup("Mode", RenderSettings.fogMode);
+                    RenderSettings.fogDensity = EditorGUILayout.Slider("Density?", RenderSettings.fogDensity, 0f, 1f);
+                    RenderSettings.fogStartDistance = EditorGUILayout.FloatField("Start", RenderSettings.fogStartDistance);
+                    RenderSettings.fogEndDistance = EditorGUILayout.FloatField("End", RenderSettings.fogEndDistance);
+
+                    EditorGUI.indentLevel--;
+                }
+            }
+
+            EditorGUI.indentLevel--;
+        }
+
+        #region Pendiente organizar
+        EditorGUILayout.Space(15);
+        EditorGUILayout.LabelField("", GUI.skin.horizontalSlider); // Línea de separación
+
+        RenderSettings.ambientMode = (AmbientMode)EditorGUILayout.EnumPopup("Ambient Mode", RenderSettings.ambientMode);
+        RenderSettings.ambientIntensity = EditorGUILayout.Slider("Ambient Intensity", RenderSettings.ambientIntensity, 0f, 8f);
+        RenderSettings.ambientLight = EditorGUILayout.ColorField("Ambient Light", RenderSettings.ambientLight);
+        RenderSettings.reflectionIntensity = EditorGUILayout.Slider("Reflection Intensity", RenderSettings.reflectionIntensity, 0f, 1f);
+
+        EditorGUILayout.Space(5);
+
+        EditorGUILayout.LabelField("Sombras globales:", EditorStyles.boldLabel);
+        QualitySettings.shadows = (UnityEngine.ShadowQuality)EditorGUILayout.EnumPopup("Calidad de sombras", QualitySettings.shadows);
+        QualitySettings.shadowDistance = EditorGUILayout.FloatField("Distancia de sombra", QualitySettings.shadowDistance);
+        QualitySettings.shadowResolution = (UnityEngine.ShadowResolution)EditorGUILayout.EnumPopup("Resolución de sombra", QualitySettings.shadowResolution);
+        #endregion
 
         EditorGUI.indentLevel--;
     }
 
+
+    /* pendiente corregir y buscar donde implementar
+    RenderSettings.defaultReflectionMode = (DefaultReflectionMode)EditorGUILayout.EnumPopup("Default Reflection Mode", RenderSettings.defaultReflectionMode);
+    if (RenderSettings.defaultReflectionMode == DefaultReflectionMode.Custom)
+    {
+        RenderSettings.customReflection = (Cubemap)EditorGUILayout.ObjectField("Custom Reflection", RenderSettings.customReflection, typeof(Cubemap), false);
+    }
+    RenderSettings.reflectionBounces = EditorGUILayout.IntSlider("Reflection Bounces", RenderSettings.reflectionBounces, 0, 4);
+    RenderSettings.reflectionProbeUsage = (ReflectionProbeUsage)EditorGUILayout.EnumPopup("Reflection Probe Usage", RenderSettings.reflectionProbeUsage);
+    RenderSettings.defaultReflectionResolution = EditorGUILayout.IntField("Default Reflection Resolution", RenderSettings.defaultReflectionResolution);
+    RenderSettings.lightProbeUsage = (LightProbeUsage)EditorGUILayout.EnumPopup("Light Probe Usage", RenderSettings.lightProbeUsage);
+    RenderSettings.lightProbeProxyVolumeResolution = EditorGUILayout.IntField("Light Probe Proxy Volume Resolution", RenderSettings.lightProbeProxyVolumeResolution);
+    RenderSettings.lightProbeProxyVolumeImportance = EditorGUILayout.FloatField("Light Probe Proxy Volume Importance", RenderSettings.lightProbeProxyVolumeImportance);
+    RenderSettings.lightProbeProxyVolumeAnchor = (Transform)EditorGUILayout.ObjectField("Light Probe Proxy Volume Anchor", RenderSettings.lightProbeProxyVolumeAnchor, typeof(Transform), true);
+    RenderSettings.lightProbeProxyVolumeOverride = (GameObject)EditorGUILayout.ObjectField("Light Probe Proxy Volume Override", RenderSettings.lightProbeProxyVolumeOverride, typeof(GameObject), true);
+    */
+    #endregion
+
+    #region Skybox Controls
+
+    bool showSkybox = false;
+    void DrawSkyboxControls()
+    {
+        EditorGUILayout.BeginVertical("box");
+        showSkybox = EditorGUILayout.Foldout(showSkybox, "Skybox y Ambient", true);
+        EditorGUILayout.EndVertical();
+
+        if (showSkybox)
+        {
+
+
+
+            EditorGUI.indentLevel--;
+        }
+    }
+
+    #endregion
+
+    #region Camera Controls
+    bool showCamera = true;
+    bool showProjection = false;
+    bool showRendering = false;
+    bool showStack = false;
+    bool showEnvironment = false;
+    bool showOutput = false;
     void DrawCameraControls()
     {
         EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
@@ -250,7 +407,7 @@ public class RenderingControlWindow : EditorWindow
         EditorGUI.indentLevel--;
     }
 
-    private void Rendering()
+    void Rendering()
     {
         EditorGUILayout.BeginVertical("box");
         showRendering = EditorGUILayout.Foldout(showRendering, "Rendering", true);
@@ -384,7 +541,7 @@ public class RenderingControlWindow : EditorWindow
             EditorGUI.indentLevel--;
         }
     }
-    private void Environment()
+    void Environment()
     {
         EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
         showEnvironment = EditorGUILayout.Foldout(showEnvironment, "Environment", true);
@@ -436,6 +593,7 @@ public class RenderingControlWindow : EditorWindow
             EditorGUI.indentLevel--;
         }
     }
+
     static LayerMask LayerMaskField(string label, LayerMask selected)
     {
         var layers = InternalEditorUtility.layers;
@@ -458,6 +616,11 @@ public class RenderingControlWindow : EditorWindow
         selected.value = mask;
         return selected;
     }
+    #endregion
+
+    #region Tools
+
+    // TODO: falta organizar el código en secciones más pequeñas y manejables
 
     Light FindDirectionalLight()
     {
@@ -475,15 +638,13 @@ public class RenderingControlWindow : EditorWindow
         SolidColor = CameraClearFlags.SolidColor,
         Uninitialized = CameraClearFlags.Nothing
     }
-    public enum TextureRequirement
+    enum TextureRequirement
     {
         Off,
         On
         // En el futuro podrías añadir "Auto" si tuviera sentido
     }
-    private TextureRequirement BoolToEnum(bool value) =>
-    value ? TextureRequirement.On : TextureRequirement.Off;
-
-    private bool EnumToBool(TextureRequirement value) =>
-        value == TextureRequirement.On;
+    TextureRequirement BoolToEnum(bool value) => value ? TextureRequirement.On : TextureRequirement.Off;
+    bool EnumToBool(TextureRequirement value) => value == TextureRequirement.On;
+    #endregion
 }
