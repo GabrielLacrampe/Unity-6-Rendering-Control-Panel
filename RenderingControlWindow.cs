@@ -95,6 +95,7 @@ public class RenderingControlWindow : EditorWindow
         }
     }
 
+    #region Environment
     bool showEnvironment_Window = false;
     void DrawEnvironment_Window()
     {
@@ -234,16 +235,104 @@ public class RenderingControlWindow : EditorWindow
             EditorGUI.indentLevel--;
         }
     }
+    #endregion
 
+    #region Scene
     bool showScene_Window = false;
     void DrawScene_Window()
     {
-        //TODO: falta implementar la sección Scene
-
+        var _lightingSettings = Lightmapping.lightingSettings;
         EditorGUILayout.BeginVertical("box");
         showScene_Window = EditorGUILayout.Foldout(showScene_Window, "Scene", true);
         EditorGUILayout.EndVertical();
+        if (showScene_Window)
+        {
+            EditorGUI.indentLevel++;
+
+            DrawLightingSettings_Section();
+            DrawRealtimeLighting_Section(_lightingSettings);
+            DrawMixedLighting_Section(_lightingSettings);
+            DrawLightmappingSettings_Section(_lightingSettings);
+
+            EditorGUI.indentLevel--;
+        }
     }
+    bool showLightingSettings_Section = false;
+    void DrawLightingSettings_Section()
+    {
+        EditorGUILayout.BeginVertical("box");
+        showLightingSettings_Section = EditorGUILayout.Foldout(showLightingSettings_Section, "Lighting Settings", true);
+        EditorGUILayout.EndVertical();
+        if (showLightingSettings_Section)
+        {
+            EditorGUI.indentLevel++;
+
+            //TODO: Lighting Setting Asset ObjectField (new/clone)
+            Lightmapping.lightingSettings = (LightingSettings)EditorGUILayout.ObjectField(
+                "Lighting Settings Asset", Lightmapping.lightingSettings, typeof(LightingSettings), false);
+
+            EditorGUI.indentLevel--;
+        }       
+    }
+    bool showLightmappingSettings_Section = false;
+    void DrawLightmappingSettings_Section(LightingSettings _lightingSettings)
+    {
+        EditorGUILayout.BeginVertical("box");
+        showLightmappingSettings_Section = EditorGUILayout.Foldout(showLightmappingSettings_Section, "Lightmapping Settings", true);
+        EditorGUILayout.EndVertical();
+        if (showLightmappingSettings_Section)
+        {
+            EditorGUI.indentLevel++;
+
+            var lightmapper = _lightingSettings.lightmapper;
+            lightmapper = (LightingSettings.Lightmapper)EditorGUILayout.EnumPopup("Lightmapper", lightmapper);
+
+
+            _lightingSettings.lightmapMaxSize = EditorGUILayout.IntField("Lightmap Max Size", _lightingSettings.lightmapMaxSize);
+            _lightingSettings.lightmapResolution = EditorGUILayout.FloatField("Lightmap Resolution", _lightingSettings.lightmapResolution);
+            _lightingSettings.lightmapPadding = EditorGUILayout.IntField("Lightmap Padding", _lightingSettings.lightmapPadding);
+
+            _lightingSettings.albedoBoost = EditorGUILayout.FloatField("Albedo Boost", _lightingSettings.albedoBoost);
+            _lightingSettings.indirectScale = EditorGUILayout.FloatField("Indirect Scale", _lightingSettings.indirectScale);
+
+            EditorGUI.indentLevel--;
+        }
+    }
+    bool showRealtimeLighting_Section = false;
+    void DrawRealtimeLighting_Section(LightingSettings _lightingSettings)
+    {
+        EditorGUILayout.BeginVertical("box");
+        showRealtimeLighting_Section = EditorGUILayout.Foldout(showRealtimeLighting_Section, "Realtime Lighting", true);
+        EditorGUILayout.EndVertical();
+        if (showRealtimeLighting_Section)
+        {
+            EditorGUI.indentLevel++;
+
+            _lightingSettings.realtimeGI = EditorGUILayout.Toggle("Realtime Global Illumination", _lightingSettings.realtimeGI);
+            _lightingSettings.realtimeEnvironmentLighting = EditorGUILayout.Toggle("Realtime Environment Lighting", _lightingSettings.realtimeEnvironmentLighting);
+            _lightingSettings.indirectResolution = EditorGUILayout.FloatField("Indirect Resolution", _lightingSettings.indirectResolution);
+
+            EditorGUI.indentLevel--;
+        }
+    }
+    bool showMixedLighting_Section = false;
+    void DrawMixedLighting_Section(LightingSettings _lightingSettings)
+    {
+        EditorGUILayout.BeginVertical("box");
+        showMixedLighting_Section = EditorGUILayout.Foldout(showMixedLighting_Section, "Mixed Lighting", true);
+        EditorGUILayout.EndVertical();
+        if (showMixedLighting_Section)
+        {
+            EditorGUI.indentLevel++;
+
+            _lightingSettings.bakedGI = EditorGUILayout.Toggle("Baked Global Illumination", _lightingSettings.bakedGI);
+            _lightingSettings.mixedBakeMode = (MixedLightingMode)EditorGUILayout.EnumPopup("Mixed Bake Mode", _lightingSettings.mixedBakeMode);
+
+            EditorGUI.indentLevel--;
+        }
+    }
+    #endregion
+
     #endregion
 
     #region Main Light
