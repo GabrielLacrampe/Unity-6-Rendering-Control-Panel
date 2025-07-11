@@ -249,21 +249,22 @@ public class RenderingControlWindow : EditorWindow
         {
             EditorGUI.indentLevel++;
 
-            DrawLightingSettings_Section();
-            DrawRealtimeLighting_Section(_lightingSettings);
-            DrawMixedLighting_Section(_lightingSettings);
-            DrawLightmappingSettings_Section(_lightingSettings);
+            DrawLightingSettings_Menu();
+            DrawRealtimeLighting_Menu(_lightingSettings);
+            DrawMixedLighting_Menu(_lightingSettings);
+            DrawLightmappingSettings_Menu(_lightingSettings);
 
             EditorGUI.indentLevel--;
         }
     }
-    bool showLightingSettings_Section = false;
-    void DrawLightingSettings_Section()
+
+    bool showLightingSettings_Menu = false;
+    void DrawLightingSettings_Menu()
     {
         EditorGUILayout.BeginVertical("box");
-        showLightingSettings_Section = EditorGUILayout.Foldout(showLightingSettings_Section, "Lighting Settings", true);
+        showLightingSettings_Menu = EditorGUILayout.Foldout(showLightingSettings_Menu, "Lighting Settings", true);
         EditorGUILayout.EndVertical();
-        if (showLightingSettings_Section)
+        if (showLightingSettings_Menu)
         {
             EditorGUI.indentLevel++;
 
@@ -274,37 +275,14 @@ public class RenderingControlWindow : EditorWindow
             EditorGUI.indentLevel--;
         }       
     }
-    bool showLightmappingSettings_Section = false;
-    void DrawLightmappingSettings_Section(LightingSettings _lightingSettings)
+
+    bool showRealtimeLighting_Menu = false;
+    void DrawRealtimeLighting_Menu(LightingSettings _lightingSettings)
     {
         EditorGUILayout.BeginVertical("box");
-        showLightmappingSettings_Section = EditorGUILayout.Foldout(showLightmappingSettings_Section, "Lightmapping Settings", true);
+        showRealtimeLighting_Menu = EditorGUILayout.Foldout(showRealtimeLighting_Menu, "Realtime Lighting", true);
         EditorGUILayout.EndVertical();
-        if (showLightmappingSettings_Section)
-        {
-            EditorGUI.indentLevel++;
-
-            var lightmapper = _lightingSettings.lightmapper;
-            lightmapper = (LightingSettings.Lightmapper)EditorGUILayout.EnumPopup("Lightmapper", lightmapper);
-
-
-            _lightingSettings.lightmapMaxSize = EditorGUILayout.IntField("Lightmap Max Size", _lightingSettings.lightmapMaxSize);
-            _lightingSettings.lightmapResolution = EditorGUILayout.FloatField("Lightmap Resolution", _lightingSettings.lightmapResolution);
-            _lightingSettings.lightmapPadding = EditorGUILayout.IntField("Lightmap Padding", _lightingSettings.lightmapPadding);
-
-            _lightingSettings.albedoBoost = EditorGUILayout.FloatField("Albedo Boost", _lightingSettings.albedoBoost);
-            _lightingSettings.indirectScale = EditorGUILayout.FloatField("Indirect Scale", _lightingSettings.indirectScale);
-
-            EditorGUI.indentLevel--;
-        }
-    }
-    bool showRealtimeLighting_Section = false;
-    void DrawRealtimeLighting_Section(LightingSettings _lightingSettings)
-    {
-        EditorGUILayout.BeginVertical("box");
-        showRealtimeLighting_Section = EditorGUILayout.Foldout(showRealtimeLighting_Section, "Realtime Lighting", true);
-        EditorGUILayout.EndVertical();
-        if (showRealtimeLighting_Section)
+        if (showRealtimeLighting_Menu)
         {
             EditorGUI.indentLevel++;
 
@@ -315,19 +293,88 @@ public class RenderingControlWindow : EditorWindow
             EditorGUI.indentLevel--;
         }
     }
-    bool showMixedLighting_Section = false;
-    void DrawMixedLighting_Section(LightingSettings _lightingSettings)
+
+    bool showMixedLighting_Menu = false;
+    void DrawMixedLighting_Menu(LightingSettings _lightingSettings)
     {
         EditorGUILayout.BeginVertical("box");
-        showMixedLighting_Section = EditorGUILayout.Foldout(showMixedLighting_Section, "Mixed Lighting", true);
+        showMixedLighting_Menu = EditorGUILayout.Foldout(showMixedLighting_Menu, "Mixed Lighting", true);
         EditorGUILayout.EndVertical();
-        if (showMixedLighting_Section)
+        if (showMixedLighting_Menu)
         {
             EditorGUI.indentLevel++;
 
             _lightingSettings.bakedGI = EditorGUILayout.Toggle("Baked Global Illumination", _lightingSettings.bakedGI);
             _lightingSettings.mixedBakeMode = (MixedLightingMode)EditorGUILayout.EnumPopup("Mixed Bake Mode", _lightingSettings.mixedBakeMode);
 
+            EditorGUI.indentLevel--;
+        }
+    }
+    bool showLightmappingSettings_Menu = false;
+
+    private static readonly int[] SampleOptions = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192 };
+    LightmapParameters selectedLightmapParameters;
+    void DrawLightmappingSettings_Menu(LightingSettings _lightingSettings)
+    {
+        EditorGUILayout.BeginVertical("box");
+        showLightmappingSettings_Menu = EditorGUILayout.Foldout(showLightmappingSettings_Menu, "Lightmapping Settings", true);
+        EditorGUILayout.EndVertical();
+        if (showLightmappingSettings_Menu)
+        {
+            EditorGUI.indentLevel++;
+
+            _lightingSettings.lightmapper = (LightingSettings.Lightmapper)EditorGUILayout.EnumPopup("Lightmapper", _lightingSettings.lightmapper);
+            _lightingSettings.environmentImportanceSampling = EditorGUILayout.Toggle("Environment Importance Sampling", _lightingSettings.environmentImportanceSampling);
+
+            int directIndex = Mathf.Clamp(System.Array.IndexOf(SampleOptions, _lightingSettings.directSampleCount), 0, 10);
+            directIndex = EditorGUILayout.IntSlider($"Direct Sample Count ({SampleOptions[directIndex]})", directIndex, 0, 10);
+            _lightingSettings.directSampleCount = SampleOptions[directIndex];
+
+            int indirectIndex = Mathf.Clamp(System.Array.IndexOf(SampleOptions, _lightingSettings.indirectSampleCount), 0, 13);
+            indirectIndex = EditorGUILayout.IntSlider($"Indirect Sample Count ({SampleOptions[indirectIndex]})", indirectIndex, 0, 13);
+            _lightingSettings.indirectSampleCount = SampleOptions[indirectIndex];
+
+            int envIndex = Mathf.Clamp(System.Array.IndexOf(SampleOptions, _lightingSettings.environmentSampleCount), 0, 11);
+            envIndex = EditorGUILayout.IntSlider($"Environment Sample Count ({SampleOptions[envIndex]})", envIndex, 0, 11);
+            _lightingSettings.environmentSampleCount = SampleOptions[envIndex];
+
+            _lightingSettings.lightProbeSampleCountMultiplier = EditorGUILayout.FloatField("Light Probe Sample Count Multiplier", _lightingSettings.lightProbeSampleCountMultiplier);
+            _lightingSettings.maxBounces = EditorGUILayout.IntField("Max Bounces", _lightingSettings.maxBounces);
+            
+            _lightingSettings.filteringMode = (LightingSettings.FilterMode)EditorGUILayout.EnumPopup("Filtering Mode", _lightingSettings.filteringMode);
+
+            EditorGUI.indentLevel++;
+            EditorGUILayout.Space(5);
+            _lightingSettings.denoiserTypeDirect = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Denoiser Type Direct", _lightingSettings.denoiserTypeDirect);
+            _lightingSettings.filterTypeDirect = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Filter Type Direct", _lightingSettings.filterTypeDirect);
+            _lightingSettings.filteringGaussianRadiusDirect = EditorGUILayout.Slider("Gaussian Radius Direct", _lightingSettings.filteringGaussianRadiusDirect, 0f, 5f);
+
+            EditorGUILayout.Space(5);
+            _lightingSettings.denoiserTypeIndirect = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Denoiser Type Indirect", _lightingSettings.denoiserTypeIndirect);
+            _lightingSettings.filterTypeIndirect = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Filter Type Indirect", _lightingSettings.filterTypeIndirect);
+            _lightingSettings.filteringGaussianRadiusIndirect = EditorGUILayout.Slider("Gaussian Radius Indirect", _lightingSettings.filteringGaussianRadiusIndirect, 0f, 5f);
+
+            EditorGUILayout.Space(5);
+            _lightingSettings.denoiserTypeAO = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Denoiser Type AO", _lightingSettings.denoiserTypeAO);
+            _lightingSettings.filterTypeAO = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Filter Type AO", _lightingSettings.filterTypeAO);
+            _lightingSettings.filteringGaussianRadiusAO = EditorGUILayout.Slider("Gaussian Radius AO", _lightingSettings.filteringGaussianRadiusAO, 0f, 5f);
+
+            EditorGUILayout.Space(5);
+            EditorGUI.indentLevel--;
+
+            _lightingSettings.lightmapResolution = EditorGUILayout.FloatField("Lightmap Resolution", _lightingSettings.lightmapResolution);
+            _lightingSettings.lightmapPadding = EditorGUILayout.IntField("Lightmap Padding", _lightingSettings.lightmapPadding);
+            _lightingSettings.lightmapMaxSize = EditorGUILayout.IntField("Lightmap Max Size", _lightingSettings.lightmapMaxSize);
+            
+            _lightingSettings.lightmapCompression = (LightmapCompression)EditorGUILayout.EnumPopup("Lightmap Compression", _lightingSettings.lightmapCompression);
+            _lightingSettings.ao = EditorGUILayout.Toggle("Ambient Occlusion", _lightingSettings.ao);
+            _lightingSettings.directionalityMode = (LightmapsMode)EditorGUILayout.EnumPopup("Directionality Mode", _lightingSettings.directionalityMode);
+            _lightingSettings.albedoBoost = EditorGUILayout.Slider("Albedo Boost", _lightingSettings.albedoBoost, 0f, 10f);
+            _lightingSettings.indirectScale = EditorGUILayout.Slider("Indirect Scale", _lightingSettings.indirectScale, 0f, 5f);
+            
+            
+            selectedLightmapParameters = (LightmapParameters)EditorGUILayout.ObjectField(
+                "Lightmap Parameters", selectedLightmapParameters, typeof(LightmapParameters), false);
             EditorGUI.indentLevel--;
         }
     }
