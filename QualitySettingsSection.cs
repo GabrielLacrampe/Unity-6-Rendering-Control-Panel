@@ -11,7 +11,6 @@ namespace RenderingControlPanel
             DrawQualitySettings_Section(boldLabel);
         }
 
-        #region Quality
         bool showQualityWindow = false;
         void DrawQualitySettings_Section(GUIStyle boldLabel)
         {
@@ -129,6 +128,5 @@ namespace RenderingControlPanel
             QualitySettings.vSyncCount = vSyncValues[selectedIndex];
             EditorGUI.indentLevel--;
         }
-        #endregion
     }
 }
