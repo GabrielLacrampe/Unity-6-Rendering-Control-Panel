@@ -1,29 +1,10 @@
-﻿using UnityEditor;
+﻿using System.Linq;
+using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
-using System.Linq;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using UnityEditorInternal;
-using UnityEngine.Android;
 
-
-/* TODO: implementar las siguientes secciones:
- * 
- * Parámetros globales de iluminación
- * Menú Window > Rendering > Lighting (Pestaña Scene y Environment)
- * 
- * el modo de luz ambiental (Skybox, Color, Gradient), la intensidad y el color.
- * Sección Environment Reflections
- * 
- * Parámetros globales de sombras
- * Edit > Project Settings > Quality
- * seleccionar el nivel de calidad y, para cada nivel, ajustar:
- *      Shadows (Calidad de sombras)
- *      Shadow Distance (Distancia de sombra)
- *      Shadow Resolution (Resolución de sombra)
- *      
- * 
- */
 public class RenderingControlWindow : EditorWindow
 {
     Light main_Light;
@@ -41,13 +22,14 @@ public class RenderingControlWindow : EditorWindow
     }
 
     bool showFocusedSettings = false;
-    Vector2 scrollPosition; // Añade esta variable para el scroll
+    Vector2 scrollPosition;
     void OnGUI()
     {
         // Ajuste dinámico del ancho de la etiqueta
         EditorGUIUtility.labelWidth = Mathf.Clamp(position.width * 0.45f, 100, 220);
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition); // INICIO SCROLL
 
+        // TODO sección Graphics Project Settings
         DrawQualitySettings();
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider); // Línea de separación
         DrawLighting_Section();
@@ -72,7 +54,81 @@ public class RenderingControlWindow : EditorWindow
         EditorGUILayout.BeginVertical("box");
         showQualityWindow = EditorGUILayout.Foldout(showQualityWindow, "Quality", true);
         EditorGUILayout.EndVertical();
+        
+        string[] qualityLevels = QualitySettings.names;
+        int currentQuality = QualitySettings.GetQualityLevel();
 
+        SerializedObject qualitySettings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/QualitySettings.asset")[0]);
+
+        if (showQualityWindow)
+        {
+            EditorGUI.indentLevel++;
+
+            int selectedQuality = EditorGUILayout.Popup("Levels", currentQuality, qualityLevels);
+            if (selectedQuality != currentQuality)
+            {
+                QualitySettings.SetQualityLevel(selectedQuality, true);
+            }
+            EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+
+            EditorGUILayout.LabelField("Current Build Target: " + EditorUserBuildSettings.activeBuildTarget);
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Rendering");
+            QualitySettings.renderPipeline = (RenderPipelineAsset)EditorGUILayout.ObjectField("Render Pipeline Asset", QualitySettings.renderPipeline, typeof(RenderPipelineAsset), false);
+            QualitySettings.realtimeReflectionProbes = EditorGUILayout.Toggle("Realtime Reflection Probes", QualitySettings.realtimeReflectionProbes);
+            QualitySettings.resolutionScalingFixedDPIFactor = EditorGUILayout.FloatField("Resolution Scaling Fixed DPI Factor", QualitySettings.resolutionScalingFixedDPIFactor);
+            EditorGUILayout.LabelField("TODO: Realtime GI CPU Usage");
+            string[] vSyncOptions = new[] { "Don't Sync", "Every VBlank", "Every Second VBlank" };
+            int[] vSyncValues = new[] { 0, 1, 2 };
+            int selectedIndex = System.Array.IndexOf(vSyncValues, QualitySettings.vSyncCount);
+            selectedIndex = EditorGUILayout.Popup("VSync Count", selectedIndex, vSyncOptions);
+            QualitySettings.vSyncCount = vSyncValues[selectedIndex];
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Textures");
+            string[] mipmapOptions = new[] {
+                "Full Resolution (0)",
+                "Half Resolution (1)",
+                "Quarter Resolution (2)",
+                "Eighth Resolution (3)",
+                "Sixteenth Resolution (4)"
+};
+            int[] mipmapValues = new[] { 0, 1, 2, 3, 4 };
+            int selectedMipmapIndex = Mathf.Clamp(
+                System.Array.IndexOf(mipmapValues, QualitySettings.globalTextureMipmapLimit), 0, mipmapValues.Length - 1);
+            selectedMipmapIndex = EditorGUILayout.Popup("Global Texture Mipmap Limit", selectedMipmapIndex, mipmapOptions);
+            QualitySettings.globalTextureMipmapLimit = mipmapValues[selectedMipmapIndex];
+            EditorGUILayout.LabelField("TODO: Mipmap Limit Groups");
+            QualitySettings.anisotropicFiltering = (AnisotropicFiltering)EditorGUILayout.EnumPopup("Anisotropic Filtering", QualitySettings.anisotropicFiltering);
+            EditorGUILayout.LabelField("TODO: Mipmap Streaming");
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Particles");
+            QualitySettings.particleRaycastBudget = EditorGUILayout.IntField("Particle Raycast Budget", QualitySettings.particleRaycastBudget);
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Shadows");
+            QualitySettings.shadowmaskMode = (ShadowmaskMode)EditorGUILayout.EnumPopup("Shadowmask Mode", QualitySettings.shadowmaskMode);
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Async Asset Upload");
+            QualitySettings.asyncUploadTimeSlice = EditorGUILayout.IntField("Async Upload Time Slice", QualitySettings.asyncUploadTimeSlice);
+            QualitySettings.asyncUploadBufferSize = EditorGUILayout.IntField("Async Upload Buffer Size", QualitySettings.asyncUploadBufferSize);
+            QualitySettings.asyncUploadPersistentBuffer = EditorGUILayout.Toggle("Async Upload Persistent Buffer", QualitySettings.asyncUploadPersistentBuffer);
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Level of Detail");
+            QualitySettings.lodBias = EditorGUILayout.FloatField("LOD Bias", QualitySettings.lodBias);
+            QualitySettings.maximumLODLevel = EditorGUILayout.IntField("Maximum LOD Level", QualitySettings.maximumLODLevel);
+            QualitySettings.enableLODCrossFade = EditorGUILayout.Toggle("Enable LOD Cross Fade", QualitySettings.enableLODCrossFade);
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Meshes");
+            QualitySettings.skinWeights = (SkinWeights)EditorGUILayout.EnumPopup("Skin Weights", QualitySettings.skinWeights);
+
+            EditorGUI.indentLevel--;
+        }
     }
     #endregion
 
@@ -324,57 +380,84 @@ public class RenderingControlWindow : EditorWindow
             EditorGUI.indentLevel++;
 
             _lightingSettings.lightmapper = (LightingSettings.Lightmapper)EditorGUILayout.EnumPopup("Lightmapper", _lightingSettings.lightmapper);
-            _lightingSettings.environmentImportanceSampling = EditorGUILayout.Toggle("Environment Importance Sampling", _lightingSettings.environmentImportanceSampling);
+            EditorGUI.indentLevel++;
 
+            _lightingSettings.environmentImportanceSampling = EditorGUILayout.Toggle("Importance Sampling", _lightingSettings.environmentImportanceSampling);
+
+            // TODO: se requiere transformar los samples count en un enum
             int directIndex = Mathf.Clamp(System.Array.IndexOf(SampleOptions, _lightingSettings.directSampleCount), 0, 10);
-            directIndex = EditorGUILayout.IntSlider($"Direct Sample Count ({SampleOptions[directIndex]})", directIndex, 0, 10);
+            directIndex = EditorGUILayout.IntSlider($"Direct Sample ({SampleOptions[directIndex]})", directIndex, 0, 10);
             _lightingSettings.directSampleCount = SampleOptions[directIndex];
 
             int indirectIndex = Mathf.Clamp(System.Array.IndexOf(SampleOptions, _lightingSettings.indirectSampleCount), 0, 13);
-            indirectIndex = EditorGUILayout.IntSlider($"Indirect Sample Count ({SampleOptions[indirectIndex]})", indirectIndex, 0, 13);
+            indirectIndex = EditorGUILayout.IntSlider($"Indirect Sample ({SampleOptions[indirectIndex]})", indirectIndex, 0, 13);
             _lightingSettings.indirectSampleCount = SampleOptions[indirectIndex];
 
             int envIndex = Mathf.Clamp(System.Array.IndexOf(SampleOptions, _lightingSettings.environmentSampleCount), 0, 11);
-            envIndex = EditorGUILayout.IntSlider($"Environment Sample Count ({SampleOptions[envIndex]})", envIndex, 0, 11);
+            envIndex = EditorGUILayout.IntSlider($"Environment Sample ({SampleOptions[envIndex]})", envIndex, 0, 11);
             _lightingSettings.environmentSampleCount = SampleOptions[envIndex];
 
-            _lightingSettings.lightProbeSampleCountMultiplier = EditorGUILayout.FloatField("Light Probe Sample Count Multiplier", _lightingSettings.lightProbeSampleCountMultiplier);
+            _lightingSettings.lightProbeSampleCountMultiplier = EditorGUILayout.FloatField("Light Probe Sample Multiplier", _lightingSettings.lightProbeSampleCountMultiplier);
             _lightingSettings.maxBounces = EditorGUILayout.IntField("Max Bounces", _lightingSettings.maxBounces);
             
-            _lightingSettings.filteringMode = (LightingSettings.FilterMode)EditorGUILayout.EnumPopup("Filtering Mode", _lightingSettings.filteringMode);
+            _lightingSettings.filteringMode = (LightingSettings.FilterMode)EditorGUILayout.EnumPopup("Filtering", _lightingSettings.filteringMode);
 
             EditorGUI.indentLevel++;
-            EditorGUILayout.Space(5);
-            _lightingSettings.denoiserTypeDirect = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Denoiser Type Direct", _lightingSettings.denoiserTypeDirect);
-            _lightingSettings.filterTypeDirect = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Filter Type Direct", _lightingSettings.filterTypeDirect);
-            _lightingSettings.filteringGaussianRadiusDirect = EditorGUILayout.Slider("Gaussian Radius Direct", _lightingSettings.filteringGaussianRadiusDirect, 0f, 5f);
 
-            EditorGUILayout.Space(5);
-            _lightingSettings.denoiserTypeIndirect = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Denoiser Type Indirect", _lightingSettings.denoiserTypeIndirect);
-            _lightingSettings.filterTypeIndirect = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Filter Type Indirect", _lightingSettings.filterTypeIndirect);
-            _lightingSettings.filteringGaussianRadiusIndirect = EditorGUILayout.Slider("Gaussian Radius Indirect", _lightingSettings.filteringGaussianRadiusIndirect, 0f, 5f);
+            _lightingSettings.denoiserTypeDirect = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Direct Denoiser", _lightingSettings.denoiserTypeDirect);
+            _lightingSettings.filterTypeDirect = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Direct Filter", _lightingSettings.filterTypeDirect);
 
-            EditorGUILayout.Space(5);
-            _lightingSettings.denoiserTypeAO = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Denoiser Type AO", _lightingSettings.denoiserTypeAO);
-            _lightingSettings.filterTypeAO = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Filter Type AO", _lightingSettings.filterTypeAO);
-            _lightingSettings.filteringGaussianRadiusAO = EditorGUILayout.Slider("Gaussian Radius AO", _lightingSettings.filteringGaussianRadiusAO, 0f, 5f);
-
-            EditorGUILayout.Space(5);
+            EditorGUI.indentLevel++; 
+            _lightingSettings.filteringGaussianRadiusDirect = EditorGUILayout.Slider("Radius", _lightingSettings.filteringGaussianRadiusDirect, 0f, 5f);
             EditorGUI.indentLevel--;
 
+            EditorGUILayout.Space(5);
+            _lightingSettings.denoiserTypeIndirect = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Indirect Denoiser", _lightingSettings.denoiserTypeIndirect);
+            _lightingSettings.filterTypeIndirect = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Indirect Filter", _lightingSettings.filterTypeIndirect);
+
+            EditorGUI.indentLevel++;
+            _lightingSettings.filteringGaussianRadiusIndirect = EditorGUILayout.Slider("Radius", _lightingSettings.filteringGaussianRadiusIndirect, 0f, 5f);
+            EditorGUI.indentLevel--;
+            
+            EditorGUILayout.Space(5);
+            // TODO: la sección AO se muestra en tono gris y no se puede usar si el bool ao es false, si es true además de estas opciones se muestran otras, max distance, indirect contribution y direct contribution
+            GUI.enabled = _lightingSettings.ao;
+
+            _lightingSettings.denoiserTypeAO = (LightingSettings.DenoiserType)EditorGUILayout.EnumPopup("Ambient Occlusion Denoiser", _lightingSettings.denoiserTypeAO);
+            _lightingSettings.filterTypeAO = (LightingSettings.FilterType)EditorGUILayout.EnumPopup("Ambient Occlusion Filter", _lightingSettings.filterTypeAO);
+
+            EditorGUI.indentLevel++;
+            _lightingSettings.filteringGaussianRadiusAO = EditorGUILayout.Slider("Radius", _lightingSettings.filteringGaussianRadiusAO, 0f, 5f);
+            GUI.enabled = true;
+            EditorGUI.indentLevel--;            
+            
+            EditorGUI.indentLevel--;
+            EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space(5);
             _lightingSettings.lightmapResolution = EditorGUILayout.FloatField("Lightmap Resolution", _lightingSettings.lightmapResolution);
             _lightingSettings.lightmapPadding = EditorGUILayout.IntField("Lightmap Padding", _lightingSettings.lightmapPadding);
-            _lightingSettings.lightmapMaxSize = EditorGUILayout.IntField("Lightmap Max Size", _lightingSettings.lightmapMaxSize);
-            
+
+            // TODO: lightmap max size es un enum
+            int[] sizeOptions = { 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192 };
+            int currentIndex = Mathf.Clamp(System.Array.IndexOf(sizeOptions, _lightingSettings.lightmapMaxSize), 0, sizeOptions.Length - 1);
+            currentIndex = EditorGUILayout.Popup("Max Lightmap Size", currentIndex, sizeOptions.Select(s => s.ToString()).ToArray());
+            _lightingSettings.lightmapMaxSize = sizeOptions[currentIndex];
+
+            //_lightingSettings.lightmapMaxSize = EditorGUILayout.IntField("Max Lightmap Size", _lightingSettings.lightmapMaxSize);
+
+            // TODO: falta Fixed Lightmap Size
+            // TODO: falta Use Mipmap Limits
+
+            EditorGUILayout.Space(5);
             _lightingSettings.lightmapCompression = (LightmapCompression)EditorGUILayout.EnumPopup("Lightmap Compression", _lightingSettings.lightmapCompression);
             _lightingSettings.ao = EditorGUILayout.Toggle("Ambient Occlusion", _lightingSettings.ao);
             _lightingSettings.directionalityMode = (LightmapsMode)EditorGUILayout.EnumPopup("Directionality Mode", _lightingSettings.directionalityMode);
             _lightingSettings.albedoBoost = EditorGUILayout.Slider("Albedo Boost", _lightingSettings.albedoBoost, 0f, 10f);
             _lightingSettings.indirectScale = EditorGUILayout.Slider("Indirect Scale", _lightingSettings.indirectScale, 0f, 5f);
-            
-            
-            selectedLightmapParameters = (LightmapParameters)EditorGUILayout.ObjectField(
-                "Lightmap Parameters", selectedLightmapParameters, typeof(LightmapParameters), false);
+
+            // TODO: lightmap parameters no selecciona el asset en uso habiendo uno            
+            selectedLightmapParameters = (LightmapParameters)EditorGUILayout.ObjectField("Lightmap Parameters", selectedLightmapParameters, typeof(LightmapParameters), false);
             EditorGUI.indentLevel--;
         }
     }
@@ -530,7 +613,7 @@ public class RenderingControlWindow : EditorWindow
     #endregion
 
     #region Main Camara
-    bool showCamera = true;
+    bool showCamera = false;
     bool showProjection = false;
     bool showRendering = false;
     bool showStack = false;
@@ -882,9 +965,6 @@ public class RenderingControlWindow : EditorWindow
     #endregion
 
     #region Tools
-
-    // TODO: falta organizar el código en secciones más pequeñas y manejables
-
     Light FindDirectionalLight()
     {
         return GameObject.FindObjectsOfType<Light>()
