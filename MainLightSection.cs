@@ -96,7 +96,7 @@ namespace RenderingControlPanel
                 EditorGUI.indentLevel++;
 
                 //TODO: falta Rendering Layers
-                //light.cullingMask = LayerMaskField("Culling Mask", light.cullingMask);
+                light.cullingMask = EditorGUILayout.MaskField("Culling Mask", light.cullingMask, UnityEditorInternal.InternalEditorUtility.layers);
 
                 EditorGUI.indentLevel--;
             }

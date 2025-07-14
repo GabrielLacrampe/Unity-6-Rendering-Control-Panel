@@ -19,10 +19,11 @@ namespace RenderingControlPanel
         {
             editorSections = new List<EditorSection>
             {
+                new GraphicsSection(),
                 new QualitySettingsSection(),
                 new LightingSection(),
                 new MainLightSection(),
-                new MainCameraSection()
+                new MainCameraSection(),
             };
         }
 
