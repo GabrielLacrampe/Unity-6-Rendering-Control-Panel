@@ -69,16 +69,6 @@ namespace RenderingControlPanel
                 );
 
                 EditorGUILayout.Space(10);
-                EditorGUILayout.LabelField("TODO: Shader Settings");
-                EditorGUILayout.LabelField("TODO: Video");
-                EditorGUILayout.LabelField("TODO: Always Included Shaders");
-                EditorGUILayout.LabelField("TODO: Renderer Light Probe Selection");
-                EditorGUILayout.LabelField("TODO: Preloaded Shaders");
-                EditorGUILayout.LabelField("TODO: Preloaded Shaders after showing first scene");
-                EditorGUILayout.LabelField("TODO: Currently traked shaders");
-
-
-                EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("TODO: Pipeline Specific Settings");
 
 
@@ -121,6 +111,12 @@ namespace RenderingControlPanel
             SerializedProperty m_InstancingStripping = so.FindProperty("m_InstancingStripping");
             SerializedProperty m_BrgStripping = so.FindProperty("m_BrgStripping");
             SerializedProperty m_PreloadShadersBatchTimeLimit = so.FindProperty("m_PreloadShadersBatchTimeLimit");
+            
+            
+            
+            SerializedProperty m_VideoShadersIncludeMode = so.FindProperty("m_VideoShadersIncludeMode");
+            SerializedProperty m_AlwaysIncludedShaders = so.FindProperty("m_AlwaysIncludedShaders");
+            SerializedProperty m_PreloadedShaders = so.FindProperty("m_PreloadedShaders");
 
 
             EditorGUILayout.LabelField("Shader Stripping");
@@ -155,6 +151,16 @@ namespace RenderingControlPanel
                 EditorGUI.indentLevel--;
             }
             //EditorGUILayout.PropertyField(m_PreloadShadersBatchTimeLimit);
+
+
+            EditorGUILayout.Space(10);
+            EditorGUILayout.LabelField("Shader Settings");
+            EditorGUILayout.PropertyField(m_VideoShadersIncludeMode, new GUIContent("Video"));
+            EditorGUILayout.PropertyField(m_AlwaysIncludedShaders, new GUIContent("Always Included Shaders"));
+            EditorGUILayout.LabelField("TODO: Renderer Light Probe Selection");
+            EditorGUILayout.PropertyField(m_PreloadedShaders, new GUIContent("Preloaded Shaders"));
+            EditorGUILayout.LabelField("TODO: Preloaded Shaders after showing first scene");
+            EditorGUILayout.LabelField("TODO: Currently traked shaders");
 
             so.ApplyModifiedProperties();
         }
