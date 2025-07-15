@@ -1,10 +1,6 @@
-﻿using System.Linq;
-using UnityEditor;
-using UnityEditor.Rendering;
+﻿using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
-using static Unity.Tutorials.Core.Editor.RichTextParser;
 
 namespace RenderingControlPanel
 {
@@ -13,14 +9,14 @@ namespace RenderingControlPanel
         public override void Draw(GUIStyle boldLabel, bool showFocusedSettings)
         {
             DrawMainLight_Window();
-            LogAllSerializedProperties();
+            //LogAllSerializedProperties();
         }
 
         bool showGraphics_Window = false;
         void DrawMainLight_Window()
         {
             Object graphicsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset")[0];
-            
+            SerializedObject so = new(graphicsAsset);
 
             EditorGUILayout.BeginVertical("box");
             showGraphics_Window = EditorGUILayout.Foldout(showGraphics_Window, "Graphics", true);
@@ -47,18 +43,22 @@ namespace RenderingControlPanel
                 }
 
                 EditorGUILayout.Space(10);
+                ShaderStripping(so);
 
-                ShaderStripping(graphicsAsset);
+                EditorGUILayout.Space(10);
+                FogPropertys(so);
 
                 EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("Shader Loading");
                 GraphicsSettings.logWhenShaderIsCompiled = EditorGUILayout.Toggle(
-                    "Log When Shader Is Compiled",
+                    "Log Shader Compilation",
                     GraphicsSettings.logWhenShaderIsCompiled
                 );
 
                 EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("Culling Settings");
+                EditorGUILayout.LabelField("Camera-Relative Culling");
+                EditorGUI.indentLevel++;
                 GraphicsSettings.cameraRelativeLightCulling = EditorGUILayout.Toggle(
                     "Lights",
                     GraphicsSettings.cameraRelativeLightCulling
@@ -67,14 +67,20 @@ namespace RenderingControlPanel
                     "Shadows",
                     GraphicsSettings.cameraRelativeShadowCulling
                 );
+                EditorGUI.indentLevel--;
+
+                EditorGUILayout.Space(10);
+                ShaderSettings(so);
 
                 EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("TODO: Pipeline Specific Settings");
 
-
+                so.ApplyModifiedProperties();
             }
+
             EditorGUI.indentLevel--;
         }
+        
         void LogAllSerializedProperties()
         {
             var graphicsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset")[0];
@@ -89,10 +95,8 @@ namespace RenderingControlPanel
             }
         }
 
-        void ShaderStripping(Object graphicsAsset)
+        void ShaderStripping(SerializedObject so)
         {
-            SerializedObject so = new SerializedObject(graphicsAsset);
-
             SerializedProperty m_LightmapStripping = so.FindProperty("m_LightmapStripping");
             SerializedProperty m_LightmapKeepPlain = so.FindProperty("m_LightmapKeepPlain");
             SerializedProperty m_LightmapKeepDirCombined = so.FindProperty("m_LightmapKeepDirCombined");
@@ -100,24 +104,6 @@ namespace RenderingControlPanel
             SerializedProperty m_LightmapKeepDynamicDirCombined = so.FindProperty("m_LightmapKeepDynamicDirCombined");
             SerializedProperty m_LightmapKeepShadowMask = so.FindProperty("m_LightmapKeepShadowMask");
             SerializedProperty m_LightmapKeepSubtractive = so.FindProperty("m_LightmapKeepSubtractive");
-
-            SerializedProperty m_FogStripping = so.FindProperty("m_FogStripping");
-            SerializedProperty m_FogKeepLinear = so.FindProperty("m_FogKeepLinear");
-            SerializedProperty m_FogKeepExp = so.FindProperty("m_FogKeepExp");
-            SerializedProperty m_FogKeepExp2 = so.FindProperty("m_FogKeepExp2");
-
-            
-
-            SerializedProperty m_InstancingStripping = so.FindProperty("m_InstancingStripping");
-            SerializedProperty m_BrgStripping = so.FindProperty("m_BrgStripping");
-            SerializedProperty m_PreloadShadersBatchTimeLimit = so.FindProperty("m_PreloadShadersBatchTimeLimit");
-            
-            
-            
-            SerializedProperty m_VideoShadersIncludeMode = so.FindProperty("m_VideoShadersIncludeMode");
-            SerializedProperty m_AlwaysIncludedShaders = so.FindProperty("m_AlwaysIncludedShaders");
-            SerializedProperty m_PreloadedShaders = so.FindProperty("m_PreloadedShaders");
-
 
             EditorGUILayout.LabelField("Shader Stripping");
             EditorGUILayout.PropertyField(m_LightmapStripping, new GUIContent("Lightmap Modes"));
@@ -134,24 +120,14 @@ namespace RenderingControlPanel
                 EditorGUILayout.LabelField("TODO:       Import From Current Scene");
                 EditorGUI.indentLevel--;
             }
+        }
 
-            EditorGUILayout.Space(10);
-            EditorGUILayout.LabelField("Fog Modes");
-            EditorGUILayout.PropertyField(m_FogStripping, new GUIContent("Fog Modes"));
-
-            if (m_FogStripping.enumValueIndex == 1) // Custom
-            {
-                EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(m_FogKeepLinear);
-                EditorGUILayout.PropertyField(m_FogKeepExp);
-                EditorGUILayout.PropertyField(m_FogKeepExp2);
-                EditorGUILayout.LabelField("TODO:       Inport from Current Scene");
-                EditorGUILayout.PropertyField(m_InstancingStripping);
-                EditorGUILayout.PropertyField(m_BrgStripping);
-                EditorGUI.indentLevel--;
-            }
-            //EditorGUILayout.PropertyField(m_PreloadShadersBatchTimeLimit);
-
+        static void ShaderSettings(SerializedObject so)
+        {
+            SerializedProperty m_VideoShadersIncludeMode = so.FindProperty("m_VideoShadersIncludeMode");
+            SerializedProperty m_AlwaysIncludedShaders = so.FindProperty("m_AlwaysIncludedShaders");
+            SerializedProperty m_PreloadedShaders = so.FindProperty("m_PreloadedShaders");
+            SerializedProperty m_ScreenSpaceShadows = so.FindProperty("m_ScreenSpaceShadows");
 
             EditorGUILayout.Space(10);
             EditorGUILayout.LabelField("Shader Settings");
@@ -160,27 +136,32 @@ namespace RenderingControlPanel
             EditorGUILayout.LabelField("TODO: Renderer Light Probe Selection");
             EditorGUILayout.PropertyField(m_PreloadedShaders, new GUIContent("Preloaded Shaders"));
             EditorGUILayout.LabelField("TODO: Preloaded Shaders after showing first scene");
-            EditorGUILayout.LabelField("TODO: Currently traked shaders");
+            EditorGUILayout.LabelField("TODO: Currently traked: ");
+            EditorGUILayout.LabelField("TODO:                       Save to asset... / Clear");
+            EditorGUILayout.PropertyField(m_ScreenSpaceShadows);
+        }
 
-            so.ApplyModifiedProperties();
+        static void FogPropertys(SerializedObject so)
+        {
+            SerializedProperty m_FogStripping = so.FindProperty("m_FogStripping");
+            SerializedProperty m_FogKeepLinear = so.FindProperty("m_FogKeepLinear");
+            SerializedProperty m_FogKeepExp = so.FindProperty("m_FogKeepExp");
+            SerializedProperty m_FogKeepExp2 = so.FindProperty("m_FogKeepExp2");
+            SerializedProperty m_InstancingStripping = so.FindProperty("m_InstancingStripping");
+            SerializedProperty m_BrgStripping = so.FindProperty("m_BrgStripping");
+
+            EditorGUILayout.PropertyField(m_FogStripping, new GUIContent("Fog Modes"));
+            if (m_FogStripping.enumValueIndex == 1)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(m_FogKeepLinear, new GUIContent("Linear"));
+                EditorGUILayout.PropertyField(m_FogKeepExp, new GUIContent("Exponential"));
+                EditorGUILayout.PropertyField(m_FogKeepExp2, new GUIContent("Exponential Squared"));
+                EditorGUILayout.LabelField("TODO:       Inport from Current Scene");
+                EditorGUILayout.PropertyField(m_InstancingStripping, new GUIContent("Instancing Variants"));
+                EditorGUILayout.PropertyField(m_BrgStripping, new GUIContent("BatchRendererGroup Variants"));
+                EditorGUI.indentLevel--;
+            }
         }
     }
 }
-
-
-// Opción alternativa: mostrar la lista de calidad y su asset SRP
-//EditorGUILayout.LabelField("Quality Levels (SRP Assets por calidad):", EditorStyles.boldLabel);
-/*
-var qualityLevels = QualitySettings.names;
-for (int i = 0; i < qualityLevels.Length; i++)
-{
-    RenderPipelineAsset qualitySRP = QualitySettings.GetRenderPipelineAssetAt(i);
-    RenderPipelineAsset newQualitySRP = (RenderPipelineAsset)EditorGUILayout.ObjectField(
-        $"[{i}] {qualityLevels[i]}",
-        qualitySRP,
-        typeof(RenderPipelineAsset),
-        false
-    );
-
-}
-*/
