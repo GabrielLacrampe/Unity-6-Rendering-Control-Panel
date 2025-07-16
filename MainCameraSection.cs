@@ -26,15 +26,15 @@ namespace RenderingControlPanel
         void DrawMainCamera()
         {
             Camera mainCamera = Camera.main;
-            EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+            EditorGUILayout.BeginVertical("box");
             showCamera = EditorGUILayout.Foldout(showCamera, "Main Camera", true);
-            EditorGUILayout.EndVertical(); // <-- Termina el marco
+            EditorGUILayout.EndVertical();
 
             if (!showCamera) return;
 
             EditorGUI.indentLevel++;
 
-            //TODO falta Render Type
+            EditorGUILayout.LabelField("TODO: Render Type");
 
             Projection(mainCamera);
             Rendering(mainCamera);
@@ -46,9 +46,9 @@ namespace RenderingControlPanel
         }
         void Projection(Camera mainCamera)
         {
-            EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+            EditorGUILayout.BeginVertical("box");
             showProjection = EditorGUILayout.Foldout(showProjection, "Projection", true);
-            EditorGUILayout.EndVertical(); // <-- Termina el marco
+            EditorGUILayout.EndVertical();
 
             if (showProjection)
             {
@@ -59,21 +59,16 @@ namespace RenderingControlPanel
 
                 EditorGUI.indentLevel++;
 
-                // Field of View Axis
-                // TODO falta field of view axis horizontal, vertical
+                EditorGUILayout.LabelField("TODO: field of view axis horizontal, vertical");
                 if (!mainCamera.orthographic)
                 {
-                    // Field of View (solo en perspectiva)
                     mainCamera.fieldOfView = EditorGUILayout.Slider("Field of View", mainCamera.fieldOfView, 1f, 179f);
                 }
                 else
                 {
-                    // Size (solo en ortográfica)
                     mainCamera.orthographicSize = EditorGUILayout.FloatField("Orthographic Size", mainCamera.orthographicSize);
                 }
 
-
-                // Clipping Planes
                 EditorGUILayout.LabelField("Clipping Planes", EditorStyles.boldLabel);
                 EditorGUI.indentLevel++;
                 mainCamera.nearClipPlane = EditorGUILayout.FloatField("Near", mainCamera.nearClipPlane);
@@ -81,8 +76,8 @@ namespace RenderingControlPanel
                 EditorGUI.indentLevel--;
 
 #if UNITY_2020_1_OR_NEWER
-                // Physical Camera (solo en Perspective)
-                // TODO terminar sección de cámara física
+
+                EditorGUILayout.LabelField("TODO: Phisical Camera");
                 mainCamera.usePhysicalProperties = !mainCamera.orthographic && EditorGUILayout.Toggle("Physical Camera", mainCamera.usePhysicalProperties);
 
                 if (mainCamera.usePhysicalProperties && !mainCamera.orthographic)
@@ -98,9 +93,9 @@ namespace RenderingControlPanel
         }
         void Stack(Camera mainCamera)
         {
-            EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+            EditorGUILayout.BeginVertical("box");
             showStack = EditorGUILayout.Foldout(showStack, "Stack", true);
-            EditorGUILayout.EndVertical(); // <-- Termina el marco
+            EditorGUILayout.EndVertical();
 
             if (showStack)
             {
@@ -123,14 +118,14 @@ namespace RenderingControlPanel
                         EditorGUILayout.EndHorizontal();
                     }
 
-                    if (GUILayout.Button("Añadir cámara overlay"))
+                    if (GUILayout.Button("Add Camera Overlay"))
                     {
                         additionalData.cameraStack.Add(null);
                     }
                 }
                 else
                 {
-                    EditorGUILayout.HelpBox("Stack solo disponible en cámaras con Render Type: Base", MessageType.Info);
+                    EditorGUILayout.HelpBox("Stack only available with Render Type: Base", MessageType.Info);
                 }
 
                 EditorGUI.indentLevel--;
@@ -138,9 +133,9 @@ namespace RenderingControlPanel
         }
         void Output(Camera mainCamera)
         {
-            EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+            EditorGUILayout.BeginVertical("box");
             showOutput = EditorGUILayout.Foldout(showOutput, "Output", true);
-            EditorGUILayout.EndVertical(); // <-- Termina el marco
+            EditorGUILayout.EndVertical();
 
             if (showOutput)
             {
@@ -152,7 +147,7 @@ namespace RenderingControlPanel
                 var additionalData = mainCamera.GetComponent<UniversalAdditionalCameraData>();
                 if (additionalData != null)
                 {
-                    //additionalData.outputCamera = (Camera)EditorGUILayout.ObjectField("Output Camera", additionalData.outputCamera, typeof(Camera), true);
+                    EditorGUILayout.LabelField("TODO: additionalData.outputCamera ");
                 }
 
                 EditorGUI.indentLevel--;
@@ -190,7 +185,6 @@ namespace RenderingControlPanel
                     var list = urpAsset.rendererDataList;
                     rendererNames = new string[list.Length + 1]; // +1 para el Default
 
-                    // Obtenemos el valor de defaultRendererIndex usando SerializedObject
                     int defaultRendererIndex = 0; // fallback
 
                     SerializedObject urpSerialized = new SerializedObject(urpAsset);
@@ -206,14 +200,12 @@ namespace RenderingControlPanel
 
                     rendererNames[0] = $"Default Renderer ({defaultRendererName})";
 
-                    // Agregamos el resto de renderers con su índice
                     for (int i = 0; i < list.Length; i++)
                     {
                         string name = list[i] != null ? list[i].name : "Unnamed Renderer";
                         rendererNames[i + 1] = $"{i}: {name}";
                     }
 
-                    // Traducimos rendererProp.intValue a índice del popup
                     popupIndex = rendererProp.intValue == -1 ? 0 : rendererProp.intValue + 1;
                     popupIndex = Mathf.Clamp(popupIndex, 0, rendererNames.Length - 1);
                 }
@@ -294,20 +286,18 @@ namespace RenderingControlPanel
         }
         void Environment(Camera mainCamera, bool showFocusedSettings)
         {
-            EditorGUILayout.BeginVertical("box"); // <-- Empieza el marco
+            EditorGUILayout.BeginVertical("box");
             showEnvironment = EditorGUILayout.Foldout(showEnvironment, "Environment", true);
-            EditorGUILayout.EndVertical(); // <-- Termina el marco
+            EditorGUILayout.EndVertical();
 
             if (showEnvironment)
             {
                 EditorGUI.indentLevel++;
 
-                // Mapear el clearFlags actual al enum filtrado
                 CleanedClearFlags filteredClearFlags = (CleanedClearFlags)mainCamera.clearFlags;
 
                 filteredClearFlags = (CleanedClearFlags)EditorGUILayout.EnumPopup("Background Type", filteredClearFlags);
 
-                // Aplicar el cambio a la cámara (cast a CameraClearFlags original)
                 mainCamera.clearFlags = (CameraClearFlags)filteredClearFlags;
 
                 // Background color
@@ -319,7 +309,6 @@ namespace RenderingControlPanel
                     EditorGUI.indentLevel--;
                 }
 
-                // Obtener datos de cámara extendidos de URP
                 var additionalData = mainCamera.GetComponent<UniversalAdditionalCameraData>();
                 if (additionalData != null)
                 {
@@ -327,13 +316,10 @@ namespace RenderingControlPanel
                     EditorGUILayout.LabelField("Volumes");
 
                     EditorGUI.indentLevel++;
-                    // Obtener el modo actual
                     VolumeFrameworkUpdateMode currentMode = mainCamera.GetVolumeFrameworkUpdateMode();
 
-                    // Mostrar selector
                     currentMode = (VolumeFrameworkUpdateMode)EditorGUILayout.EnumPopup("Update Mode", currentMode);
 
-                    // Aplicar el modo seleccionado
                     if (EditorGUI.EndChangeCheck())
                         mainCamera.SetVolumeFrameworkUpdateMode(currentMode);
                     additionalData.volumeLayerMask = LayerMaskField("Volume Mask", additionalData.volumeLayerMask);

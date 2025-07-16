@@ -37,7 +37,7 @@ namespace RenderingControlPanel
                 fontStyle = FontStyle.Bold
             };
             // Window
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition); // INICIO SCROLL
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             foreach (var section in editorSections)
             {
                 EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
@@ -45,7 +45,7 @@ namespace RenderingControlPanel
             }
             GUILayout.FlexibleSpace();
             showFocusedSettings = EditorGUILayout.ToggleLeft("Focus Settings", showFocusedSettings);
-            EditorGUILayout.EndScrollView(); // FIN SCROLL
+            EditorGUILayout.EndScrollView();
         }
     }
 
@@ -73,6 +73,5 @@ namespace RenderingControlPanel
     {
         Off,
         On
-        // En el futuro podrías añadir "Auto" si tuviera sentido
     }
 }

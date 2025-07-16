@@ -264,6 +264,7 @@ namespace RenderingControlPanel
                 _lightingSettings.environmentImportanceSampling = EditorGUILayout.Toggle("Importance Sampling", _lightingSettings.environmentImportanceSampling);
 
                 // TODO: se requiere transformar los samples count en un enum
+
                 int directIndex = Mathf.Clamp(System.Array.IndexOf(SampleOptions, _lightingSettings.directSampleCount), 0, 10);
                 directIndex = EditorGUILayout.IntSlider($"Direct Sample ({SampleOptions[directIndex]})", directIndex, 0, 10);
                 _lightingSettings.directSampleCount = SampleOptions[directIndex];
@@ -323,10 +324,9 @@ namespace RenderingControlPanel
                 currentIndex = EditorGUILayout.Popup("Max Lightmap Size", currentIndex, sizeOptions.Select(s => s.ToString()).ToArray());
                 _lightingSettings.lightmapMaxSize = sizeOptions[currentIndex];
 
-                //_lightingSettings.lightmapMaxSize = EditorGUILayout.IntField("Max Lightmap Size", _lightingSettings.lightmapMaxSize);
-
-                // TODO: falta Fixed Lightmap Size
-                // TODO: falta Use Mipmap Limits
+                EditorGUILayout.LabelField("TODO: lightmapMaxSize");
+                EditorGUILayout.LabelField("TODO: Fixed Lightmap Size");
+                EditorGUILayout.LabelField("TODO: Use Mipmap Limits");
 
                 EditorGUILayout.Space(5);
                 _lightingSettings.lightmapCompression = (LightmapCompression)EditorGUILayout.EnumPopup("Lightmap Compression", _lightingSettings.lightmapCompression);
@@ -338,7 +338,7 @@ namespace RenderingControlPanel
                 // TODO: lightmap parameters no selecciona el asset en uso habiendo uno            
                 selectedLightmapParameters = (LightmapParameters)EditorGUILayout.ObjectField("Lightmap Parameters", selectedLightmapParameters, typeof(LightmapParameters), false);
 
-                // idea SerializedObject qualitySettings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/QualitySettings.asset")[0]);
+                EditorGUILayout.LabelField("TODO: qualitySettings ");
 
                 EditorGUI.indentLevel--;
             }

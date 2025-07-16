@@ -76,7 +76,7 @@ namespace RenderingControlPanel
             {
                 EditorGUI.indentLevel++;
 
-                //TODO falta Light Appearance
+                EditorGUILayout.LabelField("TODO: Light Appearance");
                 light.color = EditorGUILayout.ColorField("Color", light.color);
                 light.intensity = EditorGUILayout.FloatField("Intensidad", light.intensity);
                 light.bounceIntensity = EditorGUILayout.FloatField("indirect Multiplier", light.bounceIntensity);
@@ -95,7 +95,7 @@ namespace RenderingControlPanel
             {
                 EditorGUI.indentLevel++;
 
-                //TODO: falta Rendering Layers
+                EditorGUILayout.LabelField("TODO: Rendering Layers");
                 light.cullingMask = EditorGUILayout.MaskField("Culling Mask", light.cullingMask, UnityEditorInternal.InternalEditorUtility.layers);
 
                 EditorGUI.indentLevel--;
@@ -120,12 +120,13 @@ namespace RenderingControlPanel
                 EditorGUI.indentLevel++;
 
                 light.shadowStrength = EditorGUILayout.Slider("Strenght", light.shadowStrength, 0f, 1f);
-                // TODO: falta shadow bias
+
+                EditorGUILayout.LabelField("TODO: shadow bias");
                 light.shadowNearPlane = EditorGUILayout.Slider("Shadow Near Plane", light.shadowNearPlane, 0f, 10f);
-                //TODO: falta soft shadow quality
+                EditorGUILayout.LabelField("TODO: soft shadow quality");
                 EditorGUI.indentLevel--;
 
-                //TODO: falta custom shadow layers
+                EditorGUILayout.LabelField("TODO: custom shadow layers");
                 EditorGUI.indentLevel--;
 
                 EditorGUI.indentLevel--;
@@ -134,6 +135,7 @@ namespace RenderingControlPanel
 
         void DrawOtherLights_Window()
         {
+            // TODO: update deprecated code
             var allLights =  GameObject.FindObjectsOfType<Light>().Where(l => l != main_Light).ToArray();
             if (allLights.Length > 0)
             {
@@ -164,6 +166,7 @@ namespace RenderingControlPanel
 
         Light FindDirectionalLight()
         {
+            // TODO: update deprecated code
             return GameObject.FindObjectsOfType<Light>()
                 .FirstOrDefault(l => l.type == LightType.Directional);
         }
