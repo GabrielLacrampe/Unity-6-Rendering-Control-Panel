@@ -9,4 +9,4 @@
 </body>
 </html>
 
-<img width="504" height="907" alt="RenderingControlPanel" src="https://github.com/user-attachments/assets/eabbc38e-74b0-4051-9ea9-df2d0e6dfcc6" />
+<img width="502" height="621" alt="RenderingControlPanel" src="https://github.com/user-attachments/assets/936afdb7-d1b5-4ab7-8b26-9c45a4c24e40" />
