@@ -5,7 +5,7 @@
 </head>
 <body>
   <h1>Unity 6 URP Rendering Control Panel</h1>
-  <p>A simple and customizable Unity Editor extension that helps developers manage rendering, lighting, and camera settings more efficiently within the Unity Editor.</p>
+  <p>A simple Unity Editor extension that helps developers manage rendering, lighting, and camera settings more efficiently within the Unity Editor.</p>
 </body>
 </html>
 
